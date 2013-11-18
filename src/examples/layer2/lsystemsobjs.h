@@ -19,6 +19,7 @@
 namespace octet {
   class LSystemsModel {
     string current_production;
+    bool loaded;
 
   public:
     int num_iterations;
@@ -26,8 +27,19 @@ namespace octet {
     string axiom;
     dictionary<string> production_rules;
 
+    LSystemsModel()
+    : current_production()
+    , loaded(false)
+    , num_iterations(0)
+    , rotation_angle(0.0f)
+    , axiom()
+    , production_rules()
+    {
+    } 
+
     LSystemsModel(const char *xmlFilename)
     : current_production()
+    , loaded(false)
     , num_iterations(0)
     , rotation_angle(0.0f)
     , axiom()
@@ -49,10 +61,11 @@ namespace octet {
 
       if (!top || strcmp(top->Value(), "lsystems")) {
         printf("warning: not a lsystems file");
+        loaded = false;
         return false;
       }
       buildSystem(top);
-
+      loaded = true;
       return true;
     }
 
@@ -84,6 +97,10 @@ namespace octet {
         string succesor(elem->Attribute("succesor"));
         production_rules[predecessor] = succesor;
       }
+    }
+
+    bool is_loaded() {
+      return loaded;
     }
   };
 }
