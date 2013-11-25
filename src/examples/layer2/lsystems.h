@@ -38,12 +38,24 @@ namespace octet {
     // helper for picking objects on the screen
     object_picker picker;
 
+    vec4 color;
+    color_shader cshader;
     LSystemsModel model;
+    Tree2DRenderer model_renderer;
+
+    mat4t cameraToWorld;
 
   public:
     // this is called when we construct the class
-    lsystems(int argc, char **argv) : app(argc, argv), ball() {
-
+    lsystems(int argc, char **argv)
+    : app(argc, argv)
+    , ball()
+    , color(1.0f, 0.0f, 0.0f, 1.0f)
+    , cshader()
+    , model()
+    , model_renderer(&cshader, color)
+    , cameraToWorld()
+    {
     }
 
     // this is called once OpenGL is initialized
@@ -63,7 +75,12 @@ namespace octet {
       }
 
       model.readConfigurationFile(filename);
-      
+      model_renderer.setModel(&model);
+
+      cameraToWorld.loadIdentity();
+      cameraToWorld.translate(0, 0, -256.0f);
+
+      /*
       string s0(*model.getProduction(0));
       string s1(*model.getProduction(1));
       string s2(*model.getProduction(2));
@@ -77,8 +94,8 @@ namespace octet {
       printf("Tree iteration 3: %s\n", s3.c_str());
       printf("Tree iteration 4: %s\n", s4.c_str());
       printf("Tree iteration 5: %s\n", s5.c_str());
-
-      overlay.init();
+      */
+      //overlay.init();
       picker.init(this);
     }
 
@@ -93,56 +110,11 @@ namespace octet {
       glClearColor(0.5f, 0.5f, 0.5f, 1);
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-      // allow Z buffer depth testing (closer objects are always drawn in front of far ones)
-      glEnable(GL_DEPTH_TEST);
-
-      GLint param;
-      glGetIntegerv(GL_SAMPLE_BUFFERS, &param);
-      if (param == 0) {
-        // if multisampling is disabled, we can't use GL_SAMPLE_COVERAGE (which I think is mean)
-        // Instead, allow alpha blend (transparency when alpha channel is 0)
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        // this is a rather brutal alpha test that cuts off anything with a small alpha.
-        #ifndef SN_TARGET_PSP2
-          //glEnable(GL_ALPHA_TEST);
-          //glAlphaFunc(GL_GREATER, 0.9f);
-        #endif
-      } else {
-        // if multisampling is enabled, use GL_SAMPLE_COVERAGE instead
-        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-        glEnable(GL_SAMPLE_COVERAGE);
-      }
-
-      // ctrl-s: save file
-      if (is_key_down('S') && is_key_down(key_ctrl)) {
-        FILE *file = fopen("c:/tmp/save.oct", "wb");
-        binary_writer b(file);
-        fclose(file);
-
-        /*resources loaded;
-        file = fopen("save.oct", "rb");
-        binary_reader r(file);
-        loaded.visit(r);
-        fclose(file);*/
-
-      }
-
-      // drag and drop file loading
-      dynarray<string> &queue = access_load_queue();
-      if (queue.size()) {
-        // replace scene
-        //dict.reset();
-        string url;
-        url.urlencode(queue[0]);
-        //load_file(url);
-        queue.resize(0);
-      }
-
       if (model.is_loaded()) {
         int vx = 0, vy = 0;
         get_viewport_size(vx, vy);
+
+        model_renderer.render(cameraToWorld, 5);
 
         //camera_instance *cam = app_scene->get_camera_instance(0);
         //scene_node *node = cam->get_node();
@@ -155,7 +127,7 @@ namespace octet {
 
         //app_scene->render(object_shader, skin_shader, *cam, (float)vx / vy);
 
-        overlay.render(object_shader, skin_shader, vx, vy, get_frame_number());
+        //overlay.render(object_shader, skin_shader, vx, vy, get_frame_number());
       }
     }
   };

@@ -136,7 +136,7 @@ namespace octet {
 
       // automatically step through tree if getting a production
       // not yet calculated
-      if (result >= productions_.size()) {
+      if (result >= (int)productions_.size()) {
         int difference = result - productions_.size();
 
         printf("Generating %d productions.\n", difference);
@@ -151,6 +151,161 @@ namespace octet {
 
     bool is_loaded() {
       return loaded_;
+    }
+
+    float get_rotation_angle() {
+      return rotation_angle_;
+    }
+  };
+
+  class LSystemsRenderer {
+  protected:
+    LSystemsModel *model;
+    dynarray<mat4t> matrix_stack;
+
+    void pushMatrix() {
+      matrix_stack.push_back(topMatrix());
+    }
+
+    mat4t popMatrix() {
+      mat4t result = topMatrix();
+      matrix_stack.pop_back();
+      return result;
+    }
+
+    mat4t &topMatrix() {
+      return matrix_stack[matrix_stack.size()-1];
+    }
+
+    void initStack() {
+      while (matrix_stack.size() > 1) {
+        matrix_stack.pop_back();
+      }
+      matrix_stack[0].loadIdentity();
+    }
+
+  public:
+    vec3 origin;
+    float rotation_angle;
+    vec3 rotation_vector;
+
+    LSystemsRenderer()
+    : model(NULL)
+    , matrix_stack()
+    , origin()
+    , rotation_angle(0.0f)
+    , rotation_vector(0.0f, 0.0f, 1.0f)
+    { 
+      mat4t m_(1.0f);
+      matrix_stack.push_back(m_);
+    }
+    
+    LSystemsRenderer(LSystemsModel *m)
+    : model(m)
+    , matrix_stack()
+    , origin()
+    , rotation_angle(0.0f)
+    , rotation_vector(0.0f, 0.0f, 1.0f)
+    { 
+      mat4t m_(1.0f);
+      matrix_stack.push_back(m_);
+      if (m) {
+        setModel(m);
+      }
+    }
+
+    virtual void setModel(LSystemsModel *m) {
+      model = m;
+      initStack();
+    }
+
+    virtual void render(mat4t &cameraToWorld, int num_iterations) {
+      
+      matrix_stack[0].rotate(rotation_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
+      matrix_stack[0].translate(origin.x(), origin.y(), origin.z());
+      const char *production = model->getProduction(num_iterations)->c_str();
+      int production_len = strlen(production);
+
+      for (int i = 0; i != production_len; i++) {
+        processChar(cameraToWorld, *(production+i));
+      }
+    }
+    
+    virtual void processChar(mat4t &cameraToWorld, char c) = 0;
+  };
+
+  class Tree2DRenderer : public LSystemsRenderer {
+  public:
+    float branch_rotate_angle;
+    float branch_length;
+    color_shader *cshader;
+    vec4 color;
+
+    Tree2DRenderer(color_shader *cshader_ = NULL, vec4 &color_ = vec4(1.0f, 1.0f, 1.0f, 1.0f), LSystemsModel *m = NULL)
+    : LSystemsRenderer(m)
+    , branch_rotate_angle(0.0f)
+    , branch_length(0.2f)
+    , cshader(cshader_)
+    , color(color_)
+    {
+      
+    }
+
+    virtual void setModel(LSystemsModel *m) {
+      LSystemsRenderer::setModel(m);
+      if (m) {
+        branch_rotate_angle = m->get_rotation_angle()*M__PI/180.0f; 
+      }
+    }
+
+    virtual void processChar(mat4t &cameraToWorld, char c) {
+      if (c == 'F') {
+        renderLeaf(topMatrix(), cameraToWorld);
+        vec4 up_branch(0.0f, branch_length, 0.0f, 1.0f);
+        up_branch = topMatrix() * up_branch;
+        topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
+      } else if (c == '[') {
+        pushMatrix();
+      } else if (c == ']') {
+        popMatrix();
+      } else if (c == '+') {
+        topMatrix().rotate(branch_rotate_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
+      } else if (c == '-') {
+        topMatrix().rotate(-branch_rotate_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
+      }
+    }
+
+    void renderLeaf(mat4t &node_matrix, mat4t &cameraToWorld) {
+
+      // build a projection matrix: model -> world -> camera -> projection
+      // the projection space is the cube -1 <= x/w, y/w, z/w <= 1
+      mat4t modelToProjection = mat4t::build_projection_matrix(node_matrix, cameraToWorld);
+      /*
+      glActiveTexture(GL_TEXTURE0);
+      glBindTexture(GL_TEXTURE_2D, texture);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+      */
+
+      // set up the uniforms for the shader
+      cshader->render(modelToProjection, color);
+
+      // this is an array of the positions of the corners of the box in 3D
+      // a straight "float" here means this array is being generated here at runtime.
+      float vertices[] = {
+        -0.1f, 0.0f,
+        0.1f,  0.0f,
+        0.1f,  branch_length,
+        -0.1f, branch_length,
+      };
+
+      glVertexAttribPointer(attribute_pos, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)vertices );
+      glEnableVertexAttribArray(attribute_pos);
+
+      // finally, draw the box (4 vertices)
+      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     }
   };
 }

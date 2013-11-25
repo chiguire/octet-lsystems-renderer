@@ -39,6 +39,15 @@ namespace octet {
       return v[i];
     }
 
+    vec4 &operator=(const vec4 &rhs) {
+      v[0] = rhs.v[0];
+      v[1] = rhs.v[1];
+      v[2] = rhs.v[2];
+      v[3] = rhs.v[3];
+
+      return *this;
+    }
+
     // vector - scalar operators
     vec4 operator+(float r) const {
       return vec4(v[0]+r, v[1]+r, v[2]+r, v[3]+r);

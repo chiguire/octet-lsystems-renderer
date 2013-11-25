@@ -50,6 +50,13 @@ namespace octet {
       v[3] = vec4( 0, 0, 0, 1 );
     }
 
+    mat4t(const mat4t &rhs) {
+      v[0] = rhs.v[0];
+      v[1] = rhs.v[1];
+      v[2] = rhs.v[2];
+      v[3] = rhs.v[3];
+    }
+
     // like the OpenGL 1.0 LoadIdentity
     mat4t &loadIdentity() {
       v[0][0] = 1; v[0][1] = 0; v[0][2] = 0; v[0][3] = 0;
@@ -114,6 +121,15 @@ namespace octet {
     // OpenGL-style translate of this matrix
     mat4t &translate(float x, float y, float z) {
       v[3] = lmul(vec4(x,y,z,1));
+      return *this;
+    }
+
+    mat4t &operator=(const mat4t &rhs) {
+      v[0] = rhs.v[0];
+      v[1] = rhs.v[1];
+      v[2] = rhs.v[2];
+      v[3] = rhs.v[3];
+
       return *this;
     }
   
