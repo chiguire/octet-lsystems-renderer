@@ -63,6 +63,20 @@ namespace octet {
       }
 
       model.readConfigurationFile(filename);
+      
+      string s0(*model.getProduction(0));
+      string s1(*model.getProduction(1));
+      string s2(*model.getProduction(2));
+      string s3(*model.getProduction(3));
+      string s4(*model.getProduction(4));
+      string s5(*model.getProduction(5));
+
+      printf("Tree iteration 0: %s\n", s0.c_str());
+      printf("Tree iteration 1: %s\n", s1.c_str());
+      printf("Tree iteration 2: %s\n", s2.c_str());
+      printf("Tree iteration 3: %s\n", s3.c_str());
+      printf("Tree iteration 4: %s\n", s4.c_str());
+      printf("Tree iteration 5: %s\n", s5.c_str());
 
       overlay.init();
       picker.init(this);
