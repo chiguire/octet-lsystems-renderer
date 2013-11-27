@@ -182,4 +182,37 @@ namespace octet {
       exit(1);
     }
   };
+
+  // dummy video capture class
+  class video_capture {
+  public:
+    video_capture() {
+    }
+
+    int open() {
+      return -1;
+    }
+
+    int read(void *buffer, unsigned max_size) {
+      return 0;
+    }
+
+    int close() {
+      return 0;
+    }
+
+    unsigned width() { return 0; }
+    unsigned height() { return 0; }
+    unsigned bits_per_pixel() { return 0; }
+    unsigned image_size() { return 0; }
+  };
+
+  // on ARM we can do this faster with the "rev" instruction
+  inline static unsigned rev16(unsigned value) {
+    value = ( ( value >> 1 ) & 0x5555 ) | ( ( value & 0x5555 ) << 1 );
+    value = ( ( value >> 2 ) & 0x3333 ) | ( ( value & 0x3333 ) << 2 );
+    value = ( ( value >> 4 ) & 0x0f0f ) | ( ( value & 0x0f0f ) << 4 );
+    value = ( ( value >> 8 ) & 0x00ff ) | ( ( value & 0x00ff ) << 8 );
+    return value;
+  }
 }

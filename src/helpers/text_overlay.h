@@ -35,8 +35,8 @@ namespace octet {
         "Boatswain: None that I more love than myself. You are counsellor; — if you can command these elements to silence, and work the peace of the present, we will not hand a rope more. Use your authority; if you cannot, give thanks you have liv'd so long, and make yourself ready in your cabin for the mischance of the hour, if it so hap.\n"
       ;*/
 
-      aabb bb(vec3(0, -100, 0), vec3(64, 256, 0));
-      text = new mesh_text(font, "Yo no soy una senora de esas que se va por ahi de caza", &bb);
+      aabb bb(vec3(0, 0, 0), vec3(64, 256, 0));
+      text = new mesh_text(font, "Hello", &bb);
 
       scene_node *msh_node = text_scene->add_scene_node();
       material *mat = new material(page);

@@ -244,26 +244,31 @@ namespace octet {
     Tree2DRenderer(color_shader *cshader_ = NULL, vec4 &color_ = vec4(1.0f, 1.0f, 1.0f, 1.0f), LSystemsModel *m = NULL)
     : LSystemsRenderer(m)
     , branch_rotate_angle(0.0f)
-    , branch_length(0.2f)
+    , branch_length(0.5f)
     , cshader(cshader_)
     , color(color_)
     {
       
     }
 
-    virtual void setModel(LSystemsModel *m) {
+    void setModel(LSystemsModel *m) {
       LSystemsRenderer::setModel(m);
       if (m) {
         branch_rotate_angle = m->get_rotation_angle()*M__PI/180.0f; 
       }
     }
 
-    virtual void processChar(mat4t &cameraToWorld, char c) {
+    void render(mat4t &cameraToWorld, int num_iterations) {
+      LSystemsRenderer::render(cameraToWorld, num_iterations);
+    }
+
+    void processChar(mat4t &cameraToWorld, char c) {
       if (c == 'F') {
         renderLeaf(topMatrix(), cameraToWorld);
         vec4 up_branch(0.0f, branch_length, 0.0f, 1.0f);
         up_branch = topMatrix() * up_branch;
         topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
+
       } else if (c == '[') {
         pushMatrix();
       } else if (c == ']') {
@@ -276,10 +281,19 @@ namespace octet {
     }
 
     void renderLeaf(mat4t &node_matrix, mat4t &cameraToWorld) {
+      mesh m;
+      m.make_aa_box(0, 0, 0);
+      
+      mat4t modelTransformMatrix(1.0f);
+      //modelTransformMatrix.scale(1.0f, 2.0f, 1.0f);
+      //modelTransformMatrix.translate(0.0f, 1.0f, 1.0f);
+
+      //node_matrix = modelTransformMatrix * node_matrix;
 
       // build a projection matrix: model -> world -> camera -> projection
       // the projection space is the cube -1 <= x/w, y/w, z/w <= 1
-      mat4t modelToProjection = mat4t::build_projection_matrix(node_matrix, cameraToWorld);
+      mat4t modelToProjection = mat4t::build_projection_matrix(modelTransformMatrix, cameraToWorld);
+
       /*
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, texture);
@@ -292,20 +306,7 @@ namespace octet {
       // set up the uniforms for the shader
       cshader->render(modelToProjection, color);
 
-      // this is an array of the positions of the corners of the box in 3D
-      // a straight "float" here means this array is being generated here at runtime.
-      float vertices[] = {
-        -0.1f, 0.0f,
-        0.1f,  0.0f,
-        0.1f,  branch_length,
-        -0.1f, branch_length,
-      };
-
-      glVertexAttribPointer(attribute_pos, 2, GL_FLOAT, GL_FALSE, 2*sizeof(float), (void*)vertices );
-      glEnableVertexAttribArray(attribute_pos);
-
-      // finally, draw the box (4 vertices)
-      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+      m.render();
     }
   };
 }

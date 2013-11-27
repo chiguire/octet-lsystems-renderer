@@ -69,8 +69,8 @@
 // A limited number uses per program is recommended.
 #define OCTET_HOT __forceinline
 
-#define OCTET_SSE 0
 #include <xmmintrin.h>
+#define snprintf sprintf_s
 
 namespace octet {
   class HWND_cmp : public hash_map_cmp {
@@ -310,12 +310,21 @@ namespace octet {
   //
 
   // big endian unaligned load
-  static unsigned uint32_be(const uint8_t *src) {
+  inline static unsigned uint32_be(const uint8_t *src) {
     return _byteswap_ulong(*(unsigned*)src);
   }
 
   // little endian unaligned load
-  static unsigned uint32_le(const uint8_t *src) {
+  inline static unsigned uint32_le(const uint8_t *src) {
     return *(unsigned*)src;
+  }
+
+  // return number of 1 bits
+  inline static unsigned pop_count(uint32_t v) {
+    v = (v & 0x55555555) + ((v>>1) & 0x55555555);
+    v = (v & 0x33333333) + ((v>>2) & 0x33333333);
+    v = (v & 0x0f0f0f0f) + ((v>>4) & 0x0f0f0f0f);
+    v = (v & 0x00ff00ff) + ((v>>8) & 0x00ff00ff);
+    return (v & (v>>16)) & 0xff;
   }
 }

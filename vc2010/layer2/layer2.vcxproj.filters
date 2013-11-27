@@ -45,6 +45,9 @@
     <Filter Include="octet\tinyxml">
       <UniqueIdentifier>{22684e24-cd9b-4d58-a840-08b6004bf032}</UniqueIdentifier>
     </Filter>
+    <Filter Include="octet\examples">
+      <UniqueIdentifier>{5e4893f8-cd1b-462c-811f-3647ab9a32ad}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\examples\layer2\main.cpp">
@@ -339,12 +342,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\scene\mesh_text.h">
       <Filter>octet\scene</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\examples\layer2\lsystems.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\examples\layer2\lsystemsobjs.h">
-      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

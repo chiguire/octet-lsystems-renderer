@@ -25,6 +25,7 @@
 #ifndef OCTET_OPENCL
   #define OCTET_OPENCL 0
 #endif
+#define OCTET_SSE 1
 
 // use <> to include from standard directories
 // use "" to include from our own project
@@ -117,6 +118,7 @@ static char *get_sprintf_buffer() {
 #include "../compiler/cpp_parser.h"
 
 // loaders (low dependency, so you can use them in other projects)
+#include "../loaders/zip_decoder.h"
 #include "../loaders/gif_decoder.h"
 #include "../loaders/jpeg_decoder.h"
 #include "../loaders/jpeg_encoder.h"
@@ -124,6 +126,7 @@ static char *get_sprintf_buffer() {
 #include "../loaders/dds_decoder.h"
 
 // resources
+#include "../resources/zip_file.h"
 #include "../resources/app_utils.h"
 #include "../resources/visitor.h"
 #include "../resources/binary_writer.h"
@@ -164,6 +167,8 @@ static char *get_sprintf_buffer() {
 #include "../scene/indexer.h"
 #include "../scene/smooth.h"
 #include "../scene/mesh_text.h"
+#include "../scene/mesh_box.h"
+#include "../scene/mesh_voxels.h"
 #include "../scene/wireframe.h"
 
 // high level helpers

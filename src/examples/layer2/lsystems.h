@@ -76,9 +76,10 @@ namespace octet {
 
       model.readConfigurationFile(filename);
       model_renderer.setModel(&model);
+      model_renderer.color = color;
 
       cameraToWorld.loadIdentity();
-      cameraToWorld.translate(0, 0, -256.0f);
+      cameraToWorld.translate(0, 0, -100.0f);
 
       /*
       string s0(*model.getProduction(0));
@@ -116,18 +117,6 @@ namespace octet {
 
         model_renderer.render(cameraToWorld, 5);
 
-        //camera_instance *cam = app_scene->get_camera_instance(0);
-        //scene_node *node = cam->get_node();
-        //mat4t &cameraToWorld = node->access_nodeToParent();
-        //ball.update(cameraToWorld);
-        //picker.update(app_scene);
-
-        // update matrices. assume 30 fps.
-        //app_scene->update(1.0f/30);
-
-        //app_scene->render(object_shader, skin_shader, *cam, (float)vx / vy);
-
-        //overlay.render(object_shader, skin_shader, vx, vy, get_frame_number());
       }
     }
   };
