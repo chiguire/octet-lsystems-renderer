@@ -25,79 +25,65 @@ namespace octet {
     typedef animation animation;
     typedef scene_node scene_node;
 
-    // shaders to draw triangles
-    bump_shader object_shader;
-    bump_shader skin_shader;
+    texture_shader tshader;
 
-    // helper to rotate camera about scene
-    mouse_ball ball;
-
-    // helper for drawing text
-    text_overlay overlay;
-
-    // helper for picking objects on the screen
-    object_picker picker;
-
-    vec4 color;
-    color_shader cshader;
     LSystemsModel model;
     Tree2DRenderer model_renderer;
 
     mat4t cameraToWorld;
+    mat4t cameraToProjection;
+
+    vec4 camera_position;
+    vec4 camera_rotation;
+    
+    bool just_pressed;
+
+    GLuint leafTex;
 
   public:
     // this is called when we construct the class
     lsystems(int argc, char **argv)
     : app(argc, argv)
-    , ball()
-    , color(1.0f, 0.0f, 0.0f, 1.0f)
-    , cshader()
     , model()
-    , model_renderer(&cshader, color)
+    , model_renderer(NULL)
     , cameraToWorld()
+    , camera_position(0.0f, 0.0f, 0.0f, 1.0f)
+    , camera_rotation(0.0f, 0.0f, 0.0f, 1.0f)
+    , just_pressed(false)
     {
     }
 
     // this is called once OpenGL is initialized
     void app_init() {
       // set up the shaders
-      object_shader.init(false);
-      skin_shader.init(true);
+      tshader.init();
 
       const char *filename = 0;
 
       int selector = 0;
       switch (selector) {
         case 0: filename = "assets/lsystems1.xml"; break;
-        case 1: filename = "assets/lsystems1.xml"; break;
-        case 2: filename = "assets/lsystems1.xml"; break;
-        case 3: filename = "assets/lsystems1.xml"; break;
+        case 1: filename = "assets/lsystems2.xml"; break;
+        case 2: filename = "assets/lsystems3.xml"; break;
+        case 3: filename = "assets/lsystems4.xml"; break;
       }
+
+      model_renderer.tshader = &tshader;
+
+      leafTex = resources::get_texture_handle(GL_RGBA, "assets/leaf.gif");
+      model_renderer.leafTex = leafTex;
 
       model.readConfigurationFile(filename);
       model_renderer.setModel(&model);
-      model_renderer.color = color;
+      model.dump_productions();
 
       cameraToWorld.loadIdentity();
-      cameraToWorld.translate(0, 0, -100.0f);
+      cameraToWorld.translate(0, 0, 50.0f);
 
-      /*
-      string s0(*model.getProduction(0));
-      string s1(*model.getProduction(1));
-      string s2(*model.getProduction(2));
-      string s3(*model.getProduction(3));
-      string s4(*model.getProduction(4));
-      string s5(*model.getProduction(5));
+      camera_position[2] = 50.0f;
 
-      printf("Tree iteration 0: %s\n", s0.c_str());
-      printf("Tree iteration 1: %s\n", s1.c_str());
-      printf("Tree iteration 2: %s\n", s2.c_str());
-      printf("Tree iteration 3: %s\n", s3.c_str());
-      printf("Tree iteration 4: %s\n", s4.c_str());
-      printf("Tree iteration 5: %s\n", s5.c_str());
-      */
-      //overlay.init();
-      picker.init(this);
+      cameraToProjection.loadIdentity();
+      cameraToProjection.ortho(-10, 10, -10, 10, -1000, 1000);
     }
 
     // this is called to draw the world
@@ -115,9 +101,50 @@ namespace octet {
         int vx = 0, vy = 0;
         get_viewport_size(vx, vy);
 
-        model_renderer.render(cameraToWorld, 5);
+        cameraToWorld.loadIdentity();
+        cameraToWorld.translate(camera_position.x(), camera_position.y(), camera_position.z());
+
+        model_renderer.render(cameraToWorld, cameraToProjection, model.get_initial_iterations());
 
       }
+
+      if (is_key_down('1') && !just_pressed) {
+        model.readConfigurationFile("assets/lsystems1.xml");
+        model.dump_productions();
+        just_pressed = true;
+      } else if (is_key_down('2') && !just_pressed) {
+        model.readConfigurationFile("assets/lsystems2.xml");
+        model.dump_productions();
+        just_pressed = true;
+      } else if (is_key_down('3') && !just_pressed) {
+        model.readConfigurationFile("assets/lsystems3.xml");
+        model.dump_productions();
+        just_pressed = true;
+      } else if (is_key_down('4') && !just_pressed) {
+        model.readConfigurationFile("assets/lsystems4.xml");
+        model.dump_productions();
+      } else if (just_pressed &&
+        !(is_key_down('1') || is_key_down('2') ||
+          is_key_down('3') || is_key_down('4'))) {
+        just_pressed = false;
+      }
+      
+      if (is_key_down('W')) {
+        camera_position[1] += 0.5f;
+      } else if (is_key_down('S')) {
+        camera_position[1] -= 0.5f;
+      }
+
+      if (is_key_down('A')) {
+        camera_position[0] -= 0.5f;
+      } else if (is_key_down('D')) {
+        camera_position[0] += 0.5f;
+      }
+
+      if (is_key_down('W') || is_key_down('S') || is_key_down('A') || is_key_down('D')) {
+        printf("Camera position: (%.2f, %.2f, %.2f)\n", camera_position.x(), camera_position.y(), camera_position.z());
+      }
+
     }
   };
 }

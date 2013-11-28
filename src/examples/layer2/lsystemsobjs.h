@@ -79,9 +79,18 @@ namespace octet {
       readConfigurationFile(xmlFilename);
     } 
 
+    void cleanModel() {
+      productions_.reset();
+      production_rules_.reset();
+      axiom_.truncate(0);
+      loaded_ = false;
+    }
+
     bool readConfigurationFile(const char *xmlFilename) {
       TiXmlDocument doc;
       dictionary<TiXmlElement *, allocator> ids;
+
+      cleanModel();
       
       doc.LoadFile(app_utils::get_path(xmlFilename));
 
@@ -139,7 +148,7 @@ namespace octet {
       if (result >= (int)productions_.size()) {
         int difference = result - productions_.size();
 
-        printf("Generating %d productions.\n", difference);
+        //printf("Generating %d productions.\n", difference);
 
         for (int i = 0; i != difference; i++) {
           step();
@@ -156,6 +165,16 @@ namespace octet {
     float get_rotation_angle() {
       return rotation_angle_;
     }
+
+    int get_initial_iterations() {
+      return num_iterations_;
+    }
+
+    void dump_productions() {
+      for (int i = 0; i != productions_.size(); i++) {
+        printf("Step %d: %s.\n", i, productions_[i]);
+      }
+    }
   };
 
   class LSystemsRenderer {
@@ -169,6 +188,7 @@ namespace octet {
 
     mat4t popMatrix() {
       mat4t result = topMatrix();
+      if (matrix_stack.size() == 1) return result;
       matrix_stack.pop_back();
       return result;
     }
@@ -219,52 +239,51 @@ namespace octet {
       initStack();
     }
 
-    virtual void render(mat4t &cameraToWorld, int num_iterations) {
-      
-      matrix_stack[0].rotate(rotation_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
-      matrix_stack[0].translate(origin.x(), origin.y(), origin.z());
+    virtual void render(mat4t &cameraToWorld, mat4t &cameraToProjection, int num_iterations) {
+      initStack();
+      //matrix_stack[0].rotate(rotation_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
+      //matrix_stack[0].translate(origin.x(), origin.y(), origin.z());
       const char *production = model->getProduction(num_iterations)->c_str();
       int production_len = strlen(production);
 
       for (int i = 0; i != production_len; i++) {
-        processChar(cameraToWorld, *(production+i));
+        processChar(cameraToWorld, cameraToProjection, *(production+i));
       }
     }
     
-    virtual void processChar(mat4t &cameraToWorld, char c) = 0;
+    virtual void processChar(mat4t &cameraToWorld, mat4t &cameraToProjection, char c) = 0;
   };
 
   class Tree2DRenderer : public LSystemsRenderer {
   public:
     float branch_rotate_angle;
     float branch_length;
-    color_shader *cshader;
-    vec4 color;
+    texture_shader *tshader;
+    GLuint leafTex;
 
-    Tree2DRenderer(color_shader *cshader_ = NULL, vec4 &color_ = vec4(1.0f, 1.0f, 1.0f, 1.0f), LSystemsModel *m = NULL)
+    Tree2DRenderer(texture_shader *tshader_ = NULL, LSystemsModel *m = NULL)
     : LSystemsRenderer(m)
     , branch_rotate_angle(0.0f)
-    , branch_length(0.5f)
-    , cshader(cshader_)
-    , color(color_)
+    , branch_length(1.0f)
+    , tshader(tshader_)
     {
-      
     }
+
+    /*void render(mat4t &cameraToWorld, mat4t &cameraToProjection, int num_iterations) {
+      initStack();
+      renderLeaf(cameraToWorld, cameraToProjection);
+    }*/
 
     void setModel(LSystemsModel *m) {
       LSystemsRenderer::setModel(m);
       if (m) {
-        branch_rotate_angle = m->get_rotation_angle()*M__PI/180.0f; 
+        branch_rotate_angle = m->get_rotation_angle(); 
       }
     }
 
-    void render(mat4t &cameraToWorld, int num_iterations) {
-      LSystemsRenderer::render(cameraToWorld, num_iterations);
-    }
-
-    void processChar(mat4t &cameraToWorld, char c) {
+    void processChar(mat4t &cameraToWorld, mat4t &cameraToProjection, char c) {
       if (c == 'F') {
-        renderLeaf(topMatrix(), cameraToWorld);
+        renderLeaf(cameraToWorld, cameraToProjection);
         vec4 up_branch(0.0f, branch_length, 0.0f, 1.0f);
         up_branch = topMatrix() * up_branch;
         topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
@@ -280,33 +299,41 @@ namespace octet {
       }
     }
 
-    void renderLeaf(mat4t &node_matrix, mat4t &cameraToWorld) {
-      mesh m;
-      m.make_aa_box(0, 0, 0);
-      
-      mat4t modelTransformMatrix(1.0f);
-      //modelTransformMatrix.scale(1.0f, 2.0f, 1.0f);
-      //modelTransformMatrix.translate(0.0f, 1.0f, 1.0f);
+    void renderLeaf(mat4t &cameraToWorld, mat4t &cameraToProjection) {
 
-      //node_matrix = modelTransformMatrix * node_matrix;
+      // flip it around to transform from world to camera
+      mat4t worldToCamera;
+      cameraToWorld.invertQuick(worldToCamera);
 
-      // build a projection matrix: model -> world -> camera -> projection
-      // the projection space is the cube -1 <= x/w, y/w, z/w <= 1
-      mat4t modelToProjection = mat4t::build_projection_matrix(modelTransformMatrix, cameraToWorld);
+      // model -> world -> camera -> projection
+      mat4t modelToProjection =  topMatrix() * worldToCamera * cameraToProjection;
 
-      /*
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, texture);
+      glBindTexture(GL_TEXTURE_2D, leafTex);
       glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-      */
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
       // set up the uniforms for the shader
-      cshader->render(modelToProjection, color);
+      tshader->render(modelToProjection, 0);
 
-      m.render();
+      // this is an array of the positions of the corners of the box in 3D
+      // a straight "float" here means this array is being generated here at runtime.
+      float vertices[] = {
+        -0.3f, -branch_length, 0.0f, 0.0f,
+        0.3f, -branch_length, 1.0f, 0.0f,
+        0.3f,  branch_length, 1.0f, 1.0f,
+        -0.3f,  branch_length, 0.0f, 1.0f
+      };
+
+      glVertexAttribPointer(attribute_pos, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)vertices );
+      glVertexAttribPointer(attribute_uv, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)(vertices + 2) );
+      glEnableVertexAttribArray(attribute_pos);
+      glEnableVertexAttribArray(attribute_uv);
+
+      // finally, draw the box (4 vertices)
+      glDrawArrays(GL_LINE_LOOP, 0, 4);
     }
   };
 }

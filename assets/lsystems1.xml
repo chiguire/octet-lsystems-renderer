@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <lsystems>
-	<initial-iterations>5</initial-iterations>
+	<initial-iterations>3</initial-iterations>
 	<initial-angle>25.7</initial-angle>
 	<axiom>F</axiom>
 	<rule predecessor="F" succesor="F[+F]F[-F]F" />

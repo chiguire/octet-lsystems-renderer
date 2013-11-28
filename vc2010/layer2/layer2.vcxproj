@@ -48,6 +48,8 @@
     <ClInclude Include="..\..\src\containers\ref.h" />
     <ClInclude Include="..\..\src\containers\string.h" />
     <ClInclude Include="..\..\src\examples\layer2\engine.h" />
+    <ClInclude Include="..\..\src\examples\layer2\lsystems.h" />
+    <ClInclude Include="..\..\src\examples\layer2\lsystemsobjs.h" />
     <ClInclude Include="..\..\src\helpers\http_server.h" />
     <ClInclude Include="..\..\src\helpers\mouse_ball.h" />
     <ClInclude Include="..\..\src\helpers\object_picker.h" />
