@@ -61,7 +61,7 @@ namespace octet {
     // initialiser (it is nice to keep the two separate for aggregate memory allocation)
     void init() {
       glutInitDisplayMode(GLUT_RGBA|GLUT_DEPTH|GLUT_DOUBLE);
-      glutInitWindowSize(500, 500);
+      glutInitWindowSize(768, 768);
       window_handle = glutCreateWindow("glut window");
       map()[window_handle] = this;
       #ifdef WIN32

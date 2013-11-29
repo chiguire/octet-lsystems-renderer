@@ -39,6 +39,7 @@ namespace octet {
     bool just_pressed;
 
     GLuint leafTex;
+    GLuint woodTex;
 
   public:
     // this is called when we construct the class
@@ -71,7 +72,9 @@ namespace octet {
       model_renderer.tshader = &tshader;
 
       leafTex = resources::get_texture_handle(GL_RGBA, "assets/leaf.gif");
+      woodTex = resources::get_texture_handle(GL_RGBA, "assets/wood.gif");
       model_renderer.leafTex = leafTex;
+      model_renderer.woodTex = woodTex;
 
       loadModel(filename);
       printf("Displaying step %d: \"%s\"\n", current_iterations, model.getProduction(current_iterations)->c_str());

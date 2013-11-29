@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<lsystems>
+	<initial-iterations>7</initial-iterations>
+	<initial-angle>25.7</initial-angle>
+	<axiom>X</axiom>
+	<rule predecessor="X" succesor="F[+X][-X]FX" />
+	<rule predecessor="F" succesor="FF" />
+</lsystems>

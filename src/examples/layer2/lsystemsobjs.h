@@ -178,6 +178,10 @@ namespace octet {
       return num_iterations_;
     }
 
+    const char *get_axiom() {
+      return axiom_.c_str();
+    }
+
     void dump_productions() {
       for (int i = 0; i != productions_.size(); i++) {
         printf("Step %d: %s.\n", i, productions_[i]);
@@ -271,7 +275,9 @@ namespace octet {
     float branch_length;
     float branch_separation;
     texture_shader *tshader;
+    
     GLuint leafTex;
+    GLuint woodTex;
 
     Tree2DRenderer(texture_shader *tshader_ = NULL, LSystemsModel *m = NULL)
     : LSystemsRenderer(m)
@@ -291,7 +297,7 @@ namespace octet {
 
     void processChar(mat4t &cameraToWorld, mat4t &cameraToProjection, char c) {
       if (c == 'F' || c == 'X') {
-        renderLeaf(cameraToWorld, cameraToProjection);
+        renderLeaf(cameraToWorld, cameraToProjection, c == 'X');
         vec4 up_branch(0.0f, branch_separation, 0.0f, 1.0f);
         topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
       } else if (c == '[') {
@@ -305,13 +311,13 @@ namespace octet {
       }
     }
 
-    void renderLeaf(mat4t &cameraToWorld, mat4t &cameraToProjection) {
+    void renderLeaf(mat4t &cameraToWorld, mat4t &cameraToProjection, bool useLeafTex = true) {
 
       // model -> world -> camera -> projection
       mat4t modelToProjection = mat4t::build_projection_matrix(topMatrix(), cameraToWorld);
 
       glActiveTexture(GL_TEXTURE0);
-      glBindTexture(GL_TEXTURE_2D, leafTex);
+      glBindTexture(GL_TEXTURE_2D, useLeafTex? leafTex: woodTex);
       glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
       glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
       glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
