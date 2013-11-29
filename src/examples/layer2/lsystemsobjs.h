@@ -40,6 +40,7 @@ namespace octet {
         this->num_iterations_ = atoi(elemText);
       } else if (!strcmp(elemValue, "initial-angle")) {
         this->rotation_angle_ = (float)atof(elemText);
+        //printf("Rotation angle is: %.2f.\n", rotation_angle_);
       } else if (!strcmp(elemValue, "axiom")) {
         this->axiom_ = elemText;
         this->productions_.push_back(axiom_);
@@ -122,15 +123,21 @@ namespace octet {
       // deterministic context-free
       // string replace for each character, not yet context sensitive
       for (int i = 0; i != len; i++) {
-        char comp[2] = { previous_production[i], 0 };
+        char comp[] = { previous_production[i], 0 };
         
-        if (production_rules_[comp]) {
+        //printf("step(): Checking char '%c'.\n", comp[0]);
+        if (production_rules_.contains(comp)) {
+          //printf("step(): Found rule, adding string '%s'.\n", production_rules_[comp].c_str());
           result += production_rules_[comp];
         } else {
           string comp_str(comp);
+          //printf("step(): Found no rule, adding string '%s'.\n", comp_str);
           result += comp_str;
         }
+        //printf("step(): Current string '%s'.\n", result.c_str());
       }
+
+      //printf("step(): Final string '%s'.\n", result.c_str());
 
       productions_.push_back(result);
        
@@ -139,14 +146,15 @@ namespace octet {
 
     const string *getProduction(int number = -1) {
       int result = number;
+
       while (result < 0) {
         result += productions_.size();
       }
 
       // automatically step through tree if getting a production
       // not yet calculated
-      if (result >= (int)productions_.size()) {
-        int difference = result - productions_.size();
+      if (result + 1 > (int)productions_.size()) {
+        int difference = result - productions_.size() + 1;
 
         //printf("Generating %d productions.\n", difference);
 
@@ -188,7 +196,10 @@ namespace octet {
 
     mat4t popMatrix() {
       mat4t result = topMatrix();
-      if (matrix_stack.size() == 1) return result;
+      if (matrix_stack.size() == 1) {
+        printf("popMatrix(): trying to pop root node");
+        return result;
+      }
       matrix_stack.pop_back();
       return result;
     }
@@ -258,36 +269,31 @@ namespace octet {
   public:
     float branch_rotate_angle;
     float branch_length;
+    float branch_separation;
     texture_shader *tshader;
     GLuint leafTex;
 
     Tree2DRenderer(texture_shader *tshader_ = NULL, LSystemsModel *m = NULL)
     : LSystemsRenderer(m)
     , branch_rotate_angle(0.0f)
-    , branch_length(1.0f)
+    , branch_length(5.0f)
+    , branch_separation(branch_length)
     , tshader(tshader_)
     {
     }
 
-    /*void render(mat4t &cameraToWorld, mat4t &cameraToProjection, int num_iterations) {
-      initStack();
-      renderLeaf(cameraToWorld, cameraToProjection);
-    }*/
-
     void setModel(LSystemsModel *m) {
       LSystemsRenderer::setModel(m);
       if (m) {
-        branch_rotate_angle = m->get_rotation_angle(); 
+        branch_rotate_angle = m->get_rotation_angle();
       }
     }
 
     void processChar(mat4t &cameraToWorld, mat4t &cameraToProjection, char c) {
-      if (c == 'F') {
+      if (c == 'F' || c == 'X') {
         renderLeaf(cameraToWorld, cameraToProjection);
-        vec4 up_branch(0.0f, branch_length, 0.0f, 1.0f);
-        up_branch = topMatrix() * up_branch;
+        vec4 up_branch(0.0f, branch_separation, 0.0f, 1.0f);
         topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
-
       } else if (c == '[') {
         pushMatrix();
       } else if (c == ']') {
@@ -301,12 +307,8 @@ namespace octet {
 
     void renderLeaf(mat4t &cameraToWorld, mat4t &cameraToProjection) {
 
-      // flip it around to transform from world to camera
-      mat4t worldToCamera;
-      cameraToWorld.invertQuick(worldToCamera);
-
       // model -> world -> camera -> projection
-      mat4t modelToProjection =  topMatrix() * worldToCamera * cameraToProjection;
+      mat4t modelToProjection = mat4t::build_projection_matrix(topMatrix(), cameraToWorld);
 
       glActiveTexture(GL_TEXTURE0);
       glBindTexture(GL_TEXTURE_2D, leafTex);
@@ -318,13 +320,13 @@ namespace octet {
       // set up the uniforms for the shader
       tshader->render(modelToProjection, 0);
 
-      // this is an array of the positions of the corners of the box in 3D
-      // a straight "float" here means this array is being generated here at runtime.
+      float branch_texture_v = branch_length/1.0f;
+
       float vertices[] = {
-        -0.3f, -branch_length, 0.0f, 0.0f,
-        0.3f, -branch_length, 1.0f, 0.0f,
-        0.3f,  branch_length, 1.0f, 1.0f,
-        -0.3f,  branch_length, 0.0f, 1.0f
+        -0.25f, 0.0f, 0.0f, 0.0f,
+        0.25f, 0.0f, 1.0f, 0.0f,
+        0.25f,  branch_length, 1.0f, branch_texture_v,
+        -0.25f,  branch_length, 0.0f, branch_texture_v
       };
 
       glVertexAttribPointer(attribute_pos, 2, GL_FLOAT, GL_FALSE, 4*sizeof(float), (void*)vertices );
@@ -333,7 +335,7 @@ namespace octet {
       glEnableVertexAttribArray(attribute_uv);
 
       // finally, draw the box (4 vertices)
-      glDrawArrays(GL_LINE_LOOP, 0, 4);
+      glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     }
   };
 }

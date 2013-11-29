@@ -34,8 +34,8 @@ namespace octet {
     mat4t cameraToProjection;
 
     vec4 camera_position;
-    vec4 camera_rotation;
-    
+    int current_iterations;
+
     bool just_pressed;
 
     GLuint leafTex;
@@ -48,7 +48,6 @@ namespace octet {
     , model_renderer(NULL)
     , cameraToWorld()
     , camera_position(0.0f, 0.0f, 0.0f, 1.0f)
-    , camera_rotation(0.0f, 0.0f, 0.0f, 1.0f)
     , just_pressed(false)
     {
     }
@@ -68,22 +67,27 @@ namespace octet {
         case 3: filename = "assets/lsystems4.xml"; break;
       }
 
+      current_iterations = 0;
       model_renderer.tshader = &tshader;
 
       leafTex = resources::get_texture_handle(GL_RGBA, "assets/leaf.gif");
       model_renderer.leafTex = leafTex;
 
-      model.readConfigurationFile(filename);
-      model_renderer.setModel(&model);
-      model.dump_productions();
+      loadModel(filename);
+      printf("Displaying step %d: \"%s\"\n", current_iterations, model.getProduction(current_iterations)->c_str());
 
       cameraToWorld.loadIdentity();
-      cameraToWorld.translate(0, 0, 50.0f);
-
       camera_position[2] = 50.0f;
+      cameraToWorld.translate(0, 0, camera_position[2]);
 
-      cameraToProjection.loadIdentity();
-      cameraToProjection.ortho(-10, 10, -10, 10, -1000, 1000);
+    }
+
+    void loadModel(const char *filename) {
+      model.readConfigurationFile(filename);
+      model.dump_productions();
+      model_renderer.setModel(&model);
+      current_iterations = model.get_initial_iterations();
+      just_pressed = true;
     }
 
     // this is called to draw the world
@@ -104,46 +108,78 @@ namespace octet {
         cameraToWorld.loadIdentity();
         cameraToWorld.translate(camera_position.x(), camera_position.y(), camera_position.z());
 
-        model_renderer.render(cameraToWorld, cameraToProjection, model.get_initial_iterations());
+        model_renderer.render(cameraToWorld, cameraToProjection, current_iterations);
 
       }
 
       if (is_key_down('1') && !just_pressed) {
-        model.readConfigurationFile("assets/lsystems1.xml");
-        model.dump_productions();
-        just_pressed = true;
+        loadModel("assets/lsystems1.xml");
       } else if (is_key_down('2') && !just_pressed) {
-        model.readConfigurationFile("assets/lsystems2.xml");
-        model.dump_productions();
-        just_pressed = true;
+        loadModel("assets/lsystems2.xml");
       } else if (is_key_down('3') && !just_pressed) {
-        model.readConfigurationFile("assets/lsystems3.xml");
-        model.dump_productions();
-        just_pressed = true;
+        loadModel("assets/lsystems3.xml");
       } else if (is_key_down('4') && !just_pressed) {
-        model.readConfigurationFile("assets/lsystems4.xml");
-        model.dump_productions();
+        loadModel("assets/lsystems4.xml");
+      } else if (is_key_down('N') && !just_pressed) {
+        current_iterations--;
+        if (current_iterations < 0) current_iterations = 0;
+        printf("Displaying step %d: \"%s\"\n", current_iterations, model.getProduction(current_iterations)->c_str());
+        just_pressed = true;
+      } else if (is_key_down('M') && !just_pressed) {
+        current_iterations++;
+        printf("Displaying step %d: \"%s\"\n", current_iterations, model.getProduction(current_iterations)->c_str());
+        just_pressed = true;
       } else if (just_pressed &&
         !(is_key_down('1') || is_key_down('2') ||
-          is_key_down('3') || is_key_down('4'))) {
+          is_key_down('3') || is_key_down('4') ||
+          is_key_down('N') || is_key_down('M')
+         )) {
         just_pressed = false;
+      }
+
+      if (is_key_down('R')) {
+        model_renderer.branch_separation -= 1.0f;
+        if (model_renderer.branch_separation < 1.0f) model_renderer.branch_separation = 1.0f;
+      } else if (is_key_down('T')) {
+        model_renderer.branch_separation += 1.0f;
+      }
+
+      if (is_key_down('Y')) {
+        model_renderer.branch_length -= 1.0f;
+        if (model_renderer.branch_length < 1.0f) model_renderer.branch_length = 1.0f;
+      } else if (is_key_down('U')) {
+        model_renderer.branch_length += 1.0f;
+      }
+
+      if (is_key_down('H')) {
+        model_renderer.branch_rotate_angle -= 0.5f;
+      } else if (is_key_down('J')) {
+        model_renderer.branch_rotate_angle += 0.5f;
       }
       
       if (is_key_down('W')) {
-        camera_position[1] += 0.5f;
+        camera_position[1] += 0.25f * (camera_position[2]/5.0f);
       } else if (is_key_down('S')) {
-        camera_position[1] -= 0.5f;
+        camera_position[1] -= 0.25f * (camera_position[2]/5.0f);
       }
 
       if (is_key_down('A')) {
-        camera_position[0] -= 0.5f;
+        camera_position[0] -= 0.25f * (camera_position[2]/5.0f);
       } else if (is_key_down('D')) {
-        camera_position[0] += 0.5f;
+        camera_position[0] += 0.25f * (camera_position[2]/5.0f);
       }
 
-      if (is_key_down('W') || is_key_down('S') || is_key_down('A') || is_key_down('D')) {
-        printf("Camera position: (%.2f, %.2f, %.2f)\n", camera_position.x(), camera_position.y(), camera_position.z());
+      if (is_key_down('Q')) {
+        camera_position[2] -= 0.5f;
+        if (camera_position[2] < 10.0f) camera_position[2] = 10.0f;
+      } else if (is_key_down('E')) {
+        camera_position[2] += 0.5f;
+        if (camera_position[2] > 200.0f) camera_position[2] = 200.0f;
       }
+
+      /*if (is_key_down('W') || is_key_down('S') || is_key_down('A') || is_key_down('D')) {
+        printf("Camera position: (%.2f, %.2f, %.2f)\n", camera_position.x(), camera_position.y(), camera_position.z());
+      }*/
 
     }
   };
