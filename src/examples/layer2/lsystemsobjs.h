@@ -296,11 +296,7 @@ namespace octet {
     }
 
     void processChar(mat4t &cameraToWorld, mat4t &cameraToProjection, char c) {
-      if (c == 'F' || c == 'X') {
-        renderLeaf(cameraToWorld, cameraToProjection, c == 'X');
-        vec4 up_branch(0.0f, branch_separation, 0.0f, 1.0f);
-        topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
-      } else if (c == '[') {
+      if (c == '[') {
         pushMatrix();
       } else if (c == ']') {
         popMatrix();
@@ -308,6 +304,10 @@ namespace octet {
         topMatrix().rotate(branch_rotate_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
       } else if (c == '-') {
         topMatrix().rotate(-branch_rotate_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
+      } else {
+        renderLeaf(cameraToWorld, cameraToProjection, c == 'X');
+        vec4 up_branch(0.0f, branch_separation, 0.0f, 1.0f);
+        topMatrix().translate(up_branch.x(), up_branch.y(), up_branch.z());
       }
     }
 
