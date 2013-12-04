@@ -4,17 +4,11 @@
 //
 // Modular Framework for OpenGLES2 rendering on multiple platforms.
 //
-// animation example: Drawing an jointed figure with animation
+// Main program to load and display an L-Systems string, represented as a
+// 2D tree.
+// 
+// Author: Ciro Duran <ciro.duran@gmail.com>
 //
-// Level: 2
-//
-// Demonstrates:
-//   Collada meshes
-//   Collada nodes
-//   Collada animation
-//
-// note this app is not in the octet namespace as it is not part of octet
-// and so we need to use  on several classes.
 
 #include "lsystemsobjs.h"
 
@@ -33,15 +27,22 @@ namespace octet {
     mat4t cameraToWorld;
     mat4t cameraToProjection;
 
+    // Camera position in world.
     vec4 camera_position;
+
+    // Current iteration of the L-System to display
     int current_iterations;
 
+    // Boolean helper to prevent calling several times a function with one key press
     bool just_pressed;
+
+    // Display or hide the online help
     bool display_help;
 
     GLuint leafTex;
     GLuint woodTex;
     GLuint helpTex;
+
   public:
     // this is called when we construct the class
     lsystems(int argc, char **argv)
@@ -60,15 +61,7 @@ namespace octet {
       // set up the shaders
       tshader.init();
 
-      const char *filename = 0;
-
-      int selector = 0;
-      switch (selector) {
-        case 0: filename = "assets/lsystems1.xml"; break;
-        case 1: filename = "assets/lsystems2.xml"; break;
-        case 2: filename = "assets/lsystems3.xml"; break;
-        case 3: filename = "assets/lsystems4.xml"; break;
-      }
+      const char *filename = "assets/lsystems1.xml";
 
       current_iterations = 0;
       model_renderer.tshader = &tshader;
@@ -204,9 +197,6 @@ namespace octet {
         if (camera_position[2] > 200.0f) camera_position[2] = 200.0f;
       }
 
-      /*if (is_key_down('W') || is_key_down('S') || is_key_down('A') || is_key_down('D')) {
-        printf("Camera position: (%.2f, %.2f, %.2f)\n", camera_position.x(), camera_position.y(), camera_position.z());
-      }*/
       render_help();
     }
 

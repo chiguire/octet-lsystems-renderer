@@ -4,28 +4,21 @@
 //
 // Modular Framework for OpenGLES2 rendering on multiple platforms.
 //
-// animation example: Drawing an jointed figure with animation
-//
-// Level: 2
-//
-// Demonstrates:
-//   Collada meshes
-//   Collada nodes
-//   Collada animation
-//
-// note this app is not in the octet namespace as it is not part of octet
-// and so we need to use  on several classes.
+// This file implements the data classes to read an L-System structure from a 
+// file and step through several iterations.
 
 namespace octet {
+
   class LSystemsModel {
 
     bool loaded_;
-    int num_iterations_;
-    float rotation_angle_;
+    int num_iterations_; // Initial number of iterations
+    float rotation_angle_; // Initial branch angle rotation
     string axiom_;
-    dynarray<string> productions_;
+    dynarray<string> productions_; // We store all productions here
     dictionary<string> production_rules_;
 
+    // Iterate through all XML elements inside the root tag.
     void buildSystem(TiXmlElement *parent) {
       for (TiXmlElement *elem = parent->FirstChildElement(); elem; elem = elem->NextSiblingElement()) {
         processElement(elem);
@@ -80,6 +73,7 @@ namespace octet {
       readConfigurationFile(xmlFilename);
     } 
 
+    // Reset all data members to load a new file
     void cleanModel() {
       productions_.reset();
       production_rules_.reset();
@@ -113,6 +107,7 @@ namespace octet {
       return true;
     }
 
+    // Generate a new iteration step
     const string *step() {
       const char *previous_production = getProduction()->c_str();
       int len = strlen(previous_production);
@@ -144,6 +139,9 @@ namespace octet {
       return &productions_[productions_.size()-1];
     }
 
+    // Get a string production by passing the iteration step as a parameter
+    // If the parameter is a number greater than the productions already stored
+    // the model will produce the intermediate steps until the desired step.
     const string *getProduction(int number = -1) {
       int result = number;
 
@@ -189,11 +187,13 @@ namespace octet {
     }
   };
 
+  // Abstract base class to implement different representations of an L-System
   class LSystemsRenderer {
   protected:
     LSystemsModel *model;
     dynarray<mat4t> matrix_stack;
 
+    // Matrix stack implementation
     void pushMatrix() {
       matrix_stack.push_back(topMatrix());
     }
@@ -220,16 +220,9 @@ namespace octet {
     }
 
   public:
-    vec3 origin;
-    float rotation_angle;
-    vec3 rotation_vector;
-
     LSystemsRenderer()
     : model(NULL)
     , matrix_stack()
-    , origin()
-    , rotation_angle(0.0f)
-    , rotation_vector(0.0f, 0.0f, 1.0f)
     { 
       mat4t m_(1.0f);
       matrix_stack.push_back(m_);
@@ -238,9 +231,6 @@ namespace octet {
     LSystemsRenderer(LSystemsModel *m)
     : model(m)
     , matrix_stack()
-    , origin()
-    , rotation_angle(0.0f)
-    , rotation_vector(0.0f, 0.0f, 1.0f)
     { 
       mat4t m_(1.0f);
       matrix_stack.push_back(m_);
@@ -254,10 +244,10 @@ namespace octet {
       initStack();
     }
 
+    // Step through all the string generated in a step, processing each
+    // character at a time
     virtual void render(mat4t &cameraToWorld, mat4t &cameraToProjection, int num_iterations) {
       initStack();
-      //matrix_stack[0].rotate(rotation_angle, rotation_vector.x(), rotation_vector.y(), rotation_vector.z());
-      //matrix_stack[0].translate(origin.x(), origin.y(), origin.z());
       const char *production = model->getProduction(num_iterations)->c_str();
       int production_len = strlen(production);
 
@@ -266,11 +256,15 @@ namespace octet {
       }
     }
     
+    // Implement this function to alter the appereance of the representation
     virtual void processChar(mat4t &cameraToWorld, mat4t &cameraToProjection, char c) = 0;
   };
 
+  // Concrete implementation of the LSystemsRenderer, to represent an L-System
+  // as a 2D textured tree.
   class Tree2DRenderer : public LSystemsRenderer {
   public:
+    vec3 rotation_vector;
     float branch_rotate_angle;
     float branch_length;
     float branch_separation;
@@ -281,6 +275,7 @@ namespace octet {
 
     Tree2DRenderer(texture_shader *tshader_ = NULL, LSystemsModel *m = NULL)
     : LSystemsRenderer(m)
+    , rotation_vector(0.0f, 0.0f, 1.0f)
     , branch_rotate_angle(0.0f)
     , branch_length(5.0f)
     , branch_separation(branch_length)
@@ -311,6 +306,9 @@ namespace octet {
       }
     }
 
+    // Render a textured rectangle according to the model-to-world matrix
+    // currently on top of stack. useLeafTex is true if will texture the
+    // quad with a green texture, else textures it with a brown texture.
     void renderLeaf(mat4t &cameraToWorld, mat4t &cameraToProjection, bool useLeafTex = true) {
 
       // model -> world -> camera -> projection
